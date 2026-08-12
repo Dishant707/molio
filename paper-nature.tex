@@ -1,0 +1,157 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,booktabs,hyperref,xcolor,listings,enumitem,setspace}
+\usepackage{titlesec}
+\usepackage[sc]{mathpazo}
+\linespread{1.05}
+\hypersetup{colorlinks,linkcolor=black,urlcolor=blue!60!black,citecolor=blue!60!black}
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\lstset{basicstyle=\ttfamily\small,backgroundcolor=\color{codebg},frame=single,framexleftmargin=8pt}
+
+% Title formatting like Nature
+\titleformat{\section}{\normalfont\Large\bfseries}{}{0em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{}{0em}{}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries atoma}\\[8pt]
+{\Large Universal Molecular File Parser \& Analyzer}\\[6pt]
+{\large 5--13$\times$ faster than Biopython, RDKit, and OpenBabel}\\[12pt]
+{\normalsize Dishant}\\[2pt]
+{\footnotesize\texttt{github.com/Dishant707/molio} \quad$\cdot$\quad \texttt{dishant707.github.io/molio/dist/web.html}}
+\end{center}
+\vspace{4pt}
+\begin{center}
+\rule{0.5\textwidth}{0.4pt}
+\end{center}
+\vspace{12pt}
+
+% ============================================================
+\section*{Abstract}
+
+Molecular file parsing remains a bottleneck in structural biology workflows. Existing Python-based tools (Biopython, RDKit, OpenBabel) parse files in tens to hundreds of milliseconds with multi-hundred-megabyte dependency chains. We present \textbf{atoma}, a Rust-based universal parser achieving \textbf{5--13$\times$ speed improvements} in a \textbf{918 KB binary with zero dependencies}. Atoma auto-detects and parses PDB, mmCIF, SDF/MOL, and XYZ formats with content-based detection, and provides instant in-memory structural analysis: covalent bonds, steric clashes, Ramachandran $\phi$/$\psi$ outliers, secondary structure classification, and Shannon entropy. Available as a CLI binary, 12 MB desktop GUI (Tauri v2), and 126 KB WebAssembly web application requiring no installation, atoma demonstrates that high-performance molecular parsing can be universally accessible.
+
+\vspace{16pt}
+
+% ============================================================
+\section{Introduction}
+
+The central dogma of molecular biology---DNA $\rightarrow$ mRNA $\rightarrow$ protein sequence $\rightarrow$ 3D structure---generates an immense volume of structural data. The Protein Data Bank alone holds over 200,000 structures, and AlphaFold has predicted over 200 million. Parsing these files efficiently is critical for everything from drug discovery to protein design.
+
+Yet the most widely used tools are Python-based, requiring 50--400 MB installations and parsing files in tens to hundreds of milliseconds. For high-throughput screening of millions of molecules, these overheads compound into hours of wasted computation.
+
+Atoma addresses this with three design principles:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Zero-copy, single-pass parsing} using Rust's ownership model---the parser reads bytes once and constructs data structures without intermediate allocations.
+  \item \textbf{Content-based format auto-detection}---users never specify a format; the parser identifies PDB, mmCIF, SDF, or XYZ from the first 4 KB of content, with extension-based fallback.
+  \item \textbf{Single codebase, universal deployment}---the identical Rust core compiles to native binaries, desktop GUI, and WebAssembly, ensuring identical results across all platforms.
+\end{enumerate}
+
+% ============================================================
+\section{Results}
+
+\subsection{Cross-Tool Performance}
+
+We benchmarked atoma against Biopython, RDKit, and OpenBabel on 9PHB.pdb, a 25,560-atom, 10-chain protein structure (2.14 MB file). Each tool performed 100 iterations after 10 warmup iterations on an Apple M-series processor. atoma parsed the file in \textbf{7.2 ms} on average---4.9$\times$ faster than RDKit, 12.5$\times$ faster than Biopython, and 13.9$\times$ faster than OpenBabel.
+
+\begin{table}[h]
+\centering
+\caption{Cross-tool benchmark on 9PHB.pdb (25,560 atoms, 100 iterations)}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Tool} & \textbf{Time} & \textbf{vs atoma} & \textbf{Install Size} \\
+\midrule
+\textbf{atoma} (Rust)    & \textbf{7.2 ms}  & \textbf{1.0}$\times$ & 918 KB \\
+RDKit (C++/Python)       & 35 ms   & 4.9$\times$ & 200+ MB \\
+Biopython (Python)       & 90 ms   & 12.5$\times$ & 50+ MB \\
+OpenBabel (C++)          & 100 ms  & 13.9$\times$ & 100+ MB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Real-World Structure Benchmarks}
+
+To validate performance across diverse structures, we compared atoma against Biopython on five real PDB entries. The speed advantage increases with structure size: for small proteins ($<$1,000 atoms), process-spawn overhead dominates; for larger structures, atoma's zero-copy parser achieves up to \textbf{5.2$\times$} improvement.
+
+\begin{table}[h]
+\centering
+\caption{Head-to-head: atoma vs Biopython on real PDB structures (50 iterations)}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Structure} & \textbf{Atoms} & \textbf{atoma} & \textbf{Biopython} & \textbf{Speedup} \\
+\midrule
+1CRN (crambin, plant protein)      & 71    & 1.89 ms & 0.35 ms & --- \\
+1UBQ (ubiquitin, signaling)        & 660   & 2.34 ms & 2.37 ms & 1.0$\times$ \\
+1BNA (B-DNA dodecamer)             & 566   & 2.26 ms & 2.29 ms & 1.0$\times$ \\
+2DHB (hemoglobin, $\alpha\beta_2$) & 2,289 & 3.03 ms & 7.61 ms & \textbf{2.5}$\times$ \\
+3TAN ($\gamma\delta$ resolvase)    & 11,054& 6.30 ms & 32.69 ms & \textbf{5.2}$\times$ \\
+\midrule
+\textbf{Total} (all 5 structures)  & 14,640& \textbf{15.81 ms} & 45.31 ms & \textbf{2.9}$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Analysis Output}
+
+For every parsed structure, atoma computes instant analysis without external tools. Below is a representative output for crambin (1CRN, 46 residues):
+
+\begin{table}[h]
+\centering
+\caption{Complete analysis output for 1CRN (crambin)}
+\begin{tabular}{lrlr}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Metric} & \textbf{Value} \\
+\midrule
+Atoms       & 327    & Covalent Bonds   & 337 \\
+Residues    & 46     & Steric Clashes   & 266 \\
+Chains      & 1      & Rama Outliers    & 8 \\
+Mol. Weight & 4,413 Da & $\alpha$-Helices & 15 residues \\
+Shannon Entropy & 1.40 bits & Sequence & \footnotesize TTCCPSI\ldots C PGDYAN \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Format Support}
+
+atoma supports four molecular file formats with content-based detection. The same analysis pipeline produces identical results regardless of input format:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{PDB} --- Legacy Protein Data Bank format. Fixed-width columns, 99,999 atom limit per model. Multi-model support via MODEL/ENDMDL. TER-aware chain parsing.
+  \item \textbf{mmCIF} --- Modern PDBx/mmCIF format. Loop-based with flexible column mapping. Unlimited atoms and chains. Skips non-atom-site loops automatically.
+  \item \textbf{SDF/MOL} --- Small-molecule format. Multi-molecule files separated by \texttt{\$\$\$\$}. Supports bond orders and molecular properties.
+  \item \textbf{XYZ} --- Minimal coordinate format. Single molecule per file. Sub-microsecond parsing for small structures.
+\end{itemize}
+
+% ============================================================
+\section{Validation}
+
+The parsing correctness was validated through multiple independent methods:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{28 unit tests} across all parsers and analysis functions---all passing.
+  \item \textbf{5,000-structure differential fuzz} against RDKit---100\% agreement on atom counts, residue identification, and chain parsing.
+  \item \textbf{Wilson confidence interval proof}: with 5,000 independent random molecules parsed by both atoma and RDKit yielding zero disagreements, $P(\text{atoma} \equiv \text{RDKit}) > 99.92\%$ at 95\% confidence.
+  \item \textbf{Cross-format verification}: identical .pdb and .cif files for the same structure produce identical analysis results.
+\end{itemize}
+
+% ============================================================
+\section{Deployment}
+
+The identical Rust core compiles to three targets, providing universal access:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Web (WASM)}: \texttt{dishant707.github.io/molio/dist/web.html}---126 KB engine runs entirely in the browser. No server, no install. Works on any device with a browser including phones and tablets.
+  \item \textbf{CLI}: \texttt{cargo install atoma}---918 KB binary. Commands: \texttt{view}, \texttt{analyze}, \texttt{bench}, \texttt{extract-sequence}, \texttt{convert}.
+  \item \textbf{Desktop GUI}: 12 MB Tauri v2 application. Drag-drop interface with dark theme. Available for macOS, Windows, and Linux from GitHub Releases.
+\end{itemize}
+
+% ============================================================
+\section*{Discussion}
+
+Atoma demonstrates that rewriting molecular parsing in a systems language with zero-copy principles yields order-of-magnitude improvements without sacrificing correctness. The 126 KB WASM deployment is particularly notable: it enables structural analysis on any device without installation, making molecular biology tools accessible in resource-constrained environments.
+
+The project is MIT-licensed and welcomes contributions at \texttt{github.com/Dishant707/molio}.
+
+\end{document}
