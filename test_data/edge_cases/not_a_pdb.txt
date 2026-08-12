@@ -1,0 +1,3 @@
+This is not a PDB file.
+It contains random text that should not crash the parser.
+Just some sentences and special characters: !@#$%^&*()_+{}|:"<>?

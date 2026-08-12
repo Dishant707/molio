@@ -1,0 +1,301 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>atoma — Molecular Parser</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131f;
+  --card: #181827;
+  --border: #252540;
+  --text: #e0e0f0;
+  --muted: #7070a0;
+  --accent: #7c6ff7;
+  --accent2: #5eead4;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --radius: 16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes countIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+
+body{
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 50% 0%, #1a1040 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 100%, #0a2a2a 0%, transparent 50%);
+  color: var(--text); min-height: 100vh; overflow-x: hidden;
+}
+/* ─── particles ─── */
+.particles{position:fixed;inset:0;pointer-events:none;z-index:0}
+.particle{position:absolute;border-radius:50%;opacity:.15;animation:float 6s ease-in-out infinite}
+/* ─── hero ─── */
+.hero{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+  padding:80px 24px 60px;text-align:center}
+/* ── abstract SVG logo ── */
+.logo-svg{width:90px;height:90px;margin-bottom:28px;filter:drop-shadow(0 8px 32px rgba(124,111,247,.35));
+  animation:float 4s ease-in-out infinite}
+.logo-svg .ring{fill:none;stroke-width:2.5;stroke-linecap:round;opacity:.85}
+.logo-svg .ring-a{stroke:#a78bfa;animation: orbitA 6s linear infinite;transform-origin:45px 45px}
+.logo-svg .ring-b{stroke:#5eead4;animation: orbitB 8s linear infinite;transform-origin:45px 45px}
+.logo-svg .ring-c{stroke:#fbbf24;animation: orbitC 7s linear infinite;transform-origin:45px 45px}
+.logo-svg .nucleus{fill:#c4b5fd;animation:pulse 2.5s ease-in-out infinite}
+.logo-svg .core{fill:#fff}
+@keyframes orbitA{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes orbitB{from{transform:rotate(120deg)}to{transform:rotate(480deg)}}
+@keyframes orbitC{from{transform:rotate(240deg)}to{transform:rotate(600deg)}}
+.hero h1{font-size:clamp(2.4em,7vw,3.6em);font-weight:900;letter-spacing:-.03em;
+  background:linear-gradient(165deg,#c4b5fd 0%,#a78bfa 25%,#5eead4 55%,#fbbf24 80%,#f0e0ff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;line-height:1.1}
+.hero .tagline{font-size:.75em;color:var(--muted);text-transform:uppercase;letter-spacing:.2em;
+  font-weight:600;margin-bottom:16px}
+.hero .sub{font-size:1.15em;color:var(--muted);max-width:500px;line-height:1.6}
+.hero .formats{display:flex;gap:16px;margin-top:28px;flex-wrap:wrap;justify-content:center}
+.hero .fmt{background:var(--surface);border:1px solid var(--border);border-radius:100px;
+  padding:8px 20px;font-size:.85em;color:var(--muted);font-weight:500;letter-spacing:.02em;
+  transition:all .3s}
+.hero .fmt:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+
+/* ─── dropzone ─── */
+.dropzone-wrap{position:relative;z-index:1;padding:0 24px;max-width:700px;margin:0 auto 40px}
+.dropzone{background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);
+  padding:56px 32px;text-align:center;cursor:pointer;transition:all .35s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden}
+.dropzone::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,
+  rgba(124,111,247,.04),rgba(94,234,212,.04));opacity:0;transition:opacity .5s}
+.dropzone:hover{border-color:var(--accent);transform:translateY(-2px);
+  box-shadow:0 8px 40px rgba(124,111,247,.12)}
+.dropzone:hover::before{opacity:1}
+.dropzone.active{border-color:var(--accent2);background:#14142a;
+  box-shadow:0 0 60px rgba(94,234,212,.15);transform:scale(1.01)}
+.dropzone .dz-svg{width:56px;height:56px;margin:0 auto 16px;transition:transform .4s;opacity:.7}
+.dropzone:hover .dz-svg{transform:scale(1.15);opacity:1}
+.dropzone.active .dz-svg{animation:pulse .8s ease-in-out infinite;opacity:1}
+.dropzone h2{font-size:1.3em;font-weight:600;margin-bottom:6px;color:var(--text)}
+.dropzone p{color:var(--muted);font-size:.95em}
+.dropzone .status{margin-top:18px;font-size:.85em;font-weight:500}
+
+/* ─── results ─── */
+.results{display:none;position:relative;z-index:1;max-width:800px;margin:0 auto;padding:0 24px 60px}
+.results.show{display:block;animation:fadeUp .5s ease-out}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);
+  border:1px solid var(--border);color:var(--muted);padding:10px 20px;border-radius:100px;
+  cursor:pointer;font-size:.9em;font-weight:500;transition:all .25s;margin-bottom:28px}
+.back-btn:hover{background:var(--card);border-color:var(--accent);color:var(--text);
+  transform:translateX(-4px)}
+
+.mol-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.mol-header h2{font-size:1.8em;font-weight:700;letter-spacing:-.01em}
+.mol-format{background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;
+  padding:4px 14px;border-radius:100px;font-size:.8em;font-weight:600;letter-spacing:.04em}
+
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px}
+.badge{background:var(--card);border:1px solid var(--border);padding:8px 18px;
+  border-radius:100px;font-size:.88em;font-weight:500;display:flex;align-items:center;gap:6px;
+  transition:all .25s}
+.badge:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(124,111,247,.1)}
+.badge .n{font-weight:700;color:var(--accent2)}
+
+/* ─── stat cards ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:36px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;text-align:center;transition:all .3s;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .4s}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.3);border-color:var(--accent)}
+.stat-card:hover::after{opacity:1}
+.stat-card .val{font-size:2.2em;font-weight:800;letter-spacing:-.03em;line-height:1.1;animation:countIn .4s ease-out}
+.stat-card .label{font-size:.8em;color:var(--muted);margin-top:6px;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.stat-card.good .val{color:var(--green)}
+.stat-card.warn .val{color:var(--amber)}
+.stat-card.bad .val{color:var(--red)}
+
+/* ─── sequence ─── */
+.seq-section{margin-bottom:36px}
+.seq-section h3{font-size:.9em;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:12px;font-weight:600}
+.seq-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.8em;
+  line-height:1.9;letter-spacing:.04em;word-break:break-all;color:var(--accent2);
+  position:relative;overflow:hidden}
+.seq-box::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;
+  background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:0 3px 3px 0}
+
+/* ─── footer bar ─── */
+.foot-bar{background:var(--card);border-top:1px solid var(--border);padding:16px 24px;
+  display:flex;align-items:center;gap:16px;border-radius:var(--radius);flex-wrap:wrap;
+  font-size:.82em;color:var(--muted)}
+.foot-bar .dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s ease-in-out infinite}
+.foot-bar strong{color:var(--accent2)}
+
+/* ─── error ─── */
+.error-box{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);
+  border-radius:var(--radius);padding:20px 24px;color:var(--red);margin-top:16px}
+.error-box b{display:block;margin-bottom:6px}
+
+/* ─── spinner ─── */
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;margin:12px auto}
+
+/* ─── loading shimmer ─── */
+.loading .shimmer{background:linear-gradient(90deg,var(--surface) 25%,var(--card) 50%,var(--surface) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:16px}
+
+@media(max-width:600px){
+  .hero{padding:48px 16px 32px}
+  .hero h1{font-size:1.8em}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-card{padding:14px}
+  .stat-card .val{font-size:1.6em}
+}
+</style></head><body>
+
+<div class="particles" id="particles"></div>
+
+<div class="hero">
+  <svg class="logo-svg" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+    <!-- 3 orbiting rings -->
+    <ellipse class="ring ring-a" cx="45" cy="45" rx="38" ry="14"/>
+    <ellipse class="ring ring-b" cx="45" cy="45" rx="38" ry="14"/>
+    <ellipse class="ring ring-c" cx="45" cy="45" rx="38" ry="14"/>
+    <!-- orbiting electrons -->
+    <circle cx="45" cy="7" r="4" class="ring ring-b" fill="#5eead4" style="opacity:1"/>
+    <circle cx="83" cy="45" r="4" class="ring ring-a" fill="#a78bfa" style="opacity:1"/>
+    <circle cx="45" cy="83" r="4" class="ring ring-c" fill="#fbbf24" style="opacity:1"/>
+    <circle cx="7" cy="45" r="4" class="ring ring-b" fill="#5eead4" style="opacity:1"/>
+    <!-- nucleus -->
+    <circle cx="45" cy="45" r="10" class="nucleus"/>
+    <circle cx="45" cy="45" r="5" class="core"/>
+  </svg>
+  <h1>atoma</h1>
+  <p class="tagline">Molecular Intelligence</p>
+  <p class="sub">Drop a molecular file and get instant structural analysis — bonds, clashes, folding, entropy. All in your browser.</p>
+  <div class="formats">
+    <span class="fmt">🧬 .pdb</span><span class="fmt">📐 .cif</span>
+    <span class="fmt">💊 .sdf</span><span class="fmt">⚛️ .xyz</span>
+  </div>
+</div>
+
+<div class="dropzone-wrap">
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
+    <svg class="dz-svg" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="24" rx="20" ry="7" fill="none" stroke="#a78bfa" stroke-width="2" opacity=".6"/>
+      <ellipse cx="24" cy="24" rx="20" ry="7" fill="none" stroke="#5eead4" stroke-width="2" opacity=".6" style="transform:rotate(60deg);transform-origin:24px 24px"/>
+      <ellipse cx="24" cy="24" rx="20" ry="7" fill="none" stroke="#fbbf24" stroke-width="2" opacity=".6" style="transform:rotate(120deg);transform-origin:24px 24px"/>
+      <circle cx="24" cy="24" r="5" fill="#c4b5fd" opacity=".8"/>
+      <circle cx="24" cy="24" r="2.5" fill="#fff"/>
+    </svg>
+    <h2>Drop your file here</h2>
+    <p>or click to browse</p>
+    <div class="status" id="status">
+      <div class="spinner" id="spinner"></div>
+      <span id="statustxt">Loading engine…</span>
+    </div>
+  </div>
+</div>
+
+<div class="results" id="results"><div id="content"></div></div>
+<input type="file" id="fi" style="display:none" accept=".pdb,.sdf,.mol,.xyz,.cif">
+
+<script type="module">
+import init, { parse_file } from './wasm/atoma_wasm.js';
+
+const dz = document.getElementById('dropzone');
+const rs = document.getElementById('results');
+const fi = document.getElementById('fi');
+const st = document.getElementById('statustxt');
+const spin = document.getElementById('spinner');
+let ready = false;
+
+// ── generate floating particles ──
+(function(){
+  const container = document.getElementById('particles');
+  const colors = ['#7c6ff7','#5eead4','#a78bfa','#4ade80','#fbbf24'];
+  for(let i=0;i<20;i++){
+    const p = document.createElement('div'); p.className='particle';
+    const size = Math.random()*3+2;
+    p.style.cssText = `width:${size}px;height:${size}px;background:${colors[i%colors.length]};
+      left:${Math.random()*100}%;top:${Math.random()*100}%;
+      animation-delay:${Math.random()*6}s;animation-duration:${Math.random()*4+4}s`;
+    container.appendChild(p);
+  }
+})();
+
+async function boot() {
+  try { await init(); ready = true; spin.style.display='none';
+    st.textContent = '✅ Ready — drop a file'; st.style.color='#4ade80'; }
+  catch(e) { spin.style.display='none'; st.textContent = '⚠️ Engine failed to load'; st.style.color='#f87171'; }
+}
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('active'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('active'));
+dz.addEventListener('drop', async e => {
+  e.preventDefault(); dz.classList.remove('active');
+  const f = e.dataTransfer.files[0]; if (f && ready) await handle(f);
+});
+fi.addEventListener('change', async e => {
+  const f = e.target.files[0]; if (f && ready) await handle(f);
+});
+
+async function handle(file) {
+  st.textContent = '⏳ Parsing…'; st.style.color='#fbbf24'; spin.style.display='inline-block';
+  try {
+    const text = await file.text();
+    const d = parse_file(text, file.name);
+    spin.style.display='none';
+    if (d.ok) { st.textContent = '✅ Done'; st.style.color='#4ade80'; render(d, file.name); }
+    else { showError(d.error); }
+  } catch(e) { spin.style.display='none'; showError(String(e)); }
+}
+
+function render(d, fn) {
+  dz.parentElement.style.display='none';
+  document.querySelector('.hero').style.display='none';
+  rs.classList.add('show');
+  const cc = d.clashes===0?'good':(d.clashes<10?'warn':'bad');
+  const rc = d.rama_outliers===0?'good':'warn';
+  document.getElementById('content').innerHTML =
+    '<button class="back-btn" onclick="location.reload()">← Back</button>'+
+    '<div class="mol-header">'+
+      '<h2>'+esc(d.name||fn)+'</h2>'+
+      '<span class="mol-format">'+esc(d.format||'?')+'</span>'+
+    '</div>'+
+    '<div class="badges">'+
+      '<div class="badge">🧬 <span class="n">'+d.atoms+'</span> atoms</div>'+
+      '<div class="badge">⚖️ <span class="n">'+d.mw.toFixed(0)+'</span> Da</div>'+
+      (d.residues?'<div class="badge">🔗 <span class="n">'+d.residues+'</span> residues</div>':'')+
+      (d.chains?'<div class="badge">⛓️ <span class="n">'+d.chains+'</span> chains</div>':'')+
+      '<div class="badge">🧬 <span class="n">'+d.sequence.length+'</span> aa</div>'+
+    '</div>'+
+    '<div class="stats-grid">'+
+      '<div class="stat-card '+(d.bonds>0?'good':'')+'"><div class="val">'+d.bonds+'</div><div class="label">Covalent Bonds</div></div>'+
+      '<div class="stat-card '+cc+'"><div class="val">'+d.clashes+'</div><div class="label">Steric Clashes</div></div>'+
+      '<div class="stat-card '+rc+'"><div class="val">'+d.rama_outliers+'</div><div class="label">Rama Outliers</div></div>'+
+      '<div class="stat-card"><div class="val">'+d.ss_helix+'</div><div class="label">α‑Helix Residues</div></div>'+
+      '<div class="stat-card"><div class="val">'+(d.entropy||0).toFixed(2)+'</div><div class="label">Shannon Entropy (bits)</div></div>'+
+    '</div>'+
+    (d.sequence?
+      '<div class="seq-section"><h3>🧬 Amino Acid Sequence</h3><div class="seq-box">'+esc(d.sequence)+'</div></div>'
+    :'')+
+    '<div class="foot-bar">'+
+      '<span class="dot"></span> Parsed in your browser with <strong>WASM</strong> · 126 KB engine · No server · No data leaves your device · <strong>'+d.format+'</strong>'+
+    '</div>';
+}
+
+function showError(err) {
+  dz.parentElement.style.display='none';
+  document.querySelector('.hero').style.display='none';
+  rs.classList.add('show');
+  document.getElementById('content').innerHTML =
+    '<button class="back-btn" onclick="location.reload()">← Back</button>'+
+    '<div class="error-box"><b>Parse Error</b>'+esc(err)+'</div>';
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+boot();
+</script>
+</body></html>

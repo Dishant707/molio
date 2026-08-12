@@ -1,0 +1,21 @@
+{
+  "productName": "atoma",
+  "version": "0.1.0",
+  "identifier": "rs.atoma.desktop",
+  "build": {
+    "frontendDist": "../../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "atoma — Molecular Intelligence",
+        "width": 800,
+        "height": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

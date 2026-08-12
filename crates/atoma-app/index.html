@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>molio</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex;
+}
+.dropzone {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; border: 2px dashed #30363d; border-radius: 12px;
+  margin: 24px; transition: all 0.3s; cursor: pointer;
+}
+.dropzone.active { border-color: #58a6ff; background: #161b22; }
+.dropzone h1 { font-size: 2em; margin-bottom: 8px; }
+.dropzone p { color: #8b949e; font-size: 1.1em; }
+.results { display: none; flex: 1; padding: 24px; overflow-y: auto; }
+.results.show { display: block; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h2 { font-size: 1.4em; color: #58a6ff; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge { background: #21262d; padding: 6px 14px; border-radius: 20px; font-size: 0.85em; }
+.sequence-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+  padding: 16px; margin: 16px 0; font-family: monospace; font-size: 0.9em; word-break: break-all; }
+.section { margin: 20px 0; }
+.section h3 { font-size: 1.1em; margin-bottom: 12px; color: #f0f6fc; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px; text-align: center; }
+.card .value { font-size: 1.8em; font-weight: bold; }
+.card .label { font-size: 0.85em; color: #8b949e; margin-top: 4px; }
+.ok { color: #3fb950; } .warn { color: #d29922; } .err { color: #f85149; }
+.actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.btn { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+  border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.9em; transition: 0.2s; }
+.btn:hover { background: #30363d; border-color: #58a6ff; }
+.btn.primary { background: #238636; border-color: #238636; color: white; }
+.btn.primary:hover { background: #2ea043; }
+.back { position: absolute; top: 16px; left: 16px; }
+</style>
+</head>
+<body>
+
+<div id="dropzone" class="dropzone" onclick="document.getElementById('fileInput').click()">
+  <h1>⚛️ molio</h1>
+  <p>Drop a molecular file here</p>
+  <p style="font-size:0.85em; margin-top:8px">.pdb · .sdf · .xyz · .cif · .mol</p>
+  <p style="font-size:0.75em; color:#484f58; margin-top:16px">or click to browse</p>
+</div>
+
+<div id="results" class="results">
+  <div id="content"></div>
+</div>
+
+<input type="file" id="fileInput" style="display:none" accept=".pdb,.sdf,.mol,.xyz,.cif">
+
+<script>
+const { invoke } = window.__TAURI__?.core || {};
+const dropzone = document.getElementById('dropzone');
+const results = document.getElementById('results');
+const fileInput = document.getElementById('fileInput');
+
+// Drag and drop
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('active'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) handleFile(file);
+});
+
+async function handleFile(file) {
+  const text = await file.text();
+  const data = await invoke('open_file', { content: text, filename: file.name });
+  showResults(data);
+}
+
+function showResults(d) {
+  dropzone.style.display = 'none';
+  results.classList.add('show');
+
+  const clashClass = d.clashes === 0 ? 'ok' : (d.clashes < 10 ? 'warn' : 'err');
+  const ramaClass = d.rama_outliers === 0 ? 'ok' : 'warn';
+
+  document.getElementById('content').innerHTML = `
+    <button class="btn back" onclick="location.reload()">← New file</button>
+    <div class="header">
+      <h2>⚛️ ${escapeHtml(d.name)}</h2>
+    </div>
+
+    <div class="badges">
+      <span class="badge">${d.format}</span>
+      <span class="badge">${d.atoms} atoms</span>
+      <span class="badge">${d.mw.toFixed(1)} Da</span>
+      ${d.residues > 0 ? `<span class="badge">${d.residues} residues</span>` : ''}
+      ${d.chains > 0 ? `<span class="badge">${d.chains} chains</span>` : ''}
+    </div>
+
+    <div class="section">
+      <h3>📊 Analysis</h3>
+      <div class="grid">
+        <div class="card">
+          <div class="value ${d.bonds > 0 ? 'ok' : ''}">${d.bonds}</div>
+          <div class="label">Bonds detected</div>
+        </div>
+        <div class="card">
+          <div class="value ${clashClass}">${d.clashes}</div>
+          <div class="label">Steric clashes</div>
+        </div>
+        <div class="card">
+          <div class="value ${ramaClass}">${d.rama_outliers}</div>
+          <div class="label">Rama outliers</div>
+        </div>
+        <div class="card">
+          <div class="value">${d.ss_helix}H ${d.ss_strand}E ${d.ss_loop}L</div>
+          <div class="label">Secondary structure</div>
+        </div>
+      </div>
+    </div>
+
+    ${d.sequence ? `
+    <div class="section">
+      <h3>🧬 Sequence</h3>
+      <div class="sequence-box">${d.sequence}</div>
+    </div>
+    ` : ''}
+
+    <div class="actions">
+      <button class="btn primary" onclick="exportFormat('xyz')">📥 Export XYZ</button>
+      <button class="btn" onclick="exportFormat('pdb')">📥 Export PDB</button>
+      <button class="btn" onclick="exportFormat('sdf')">📥 Export SDF</button>
+      ${d.sequence ? `<button class="btn" onclick="copySequence('${d.sequence}')">📋 Copy FASTA</button>` : ''}
+    </div>
+  `;
+}
+
+async function exportFormat(target) {
+  const text = await invoke('convert_format', { content: document.querySelector('input')?.value || '', target });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `molecule.${target}`; a.click();
+}
+
+function copySequence(seq) {
+  navigator.clipboard.writeText(seq);
+  alert('Sequence copied!');
+}
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

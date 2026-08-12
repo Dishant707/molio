@@ -1,0 +1,14 @@
+[package]
+name = "atoma-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "atoma WebAssembly bindings — parse molecules in the browser"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+atoma-core = { path = "../atoma-core" }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"

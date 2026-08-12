@@ -1,0 +1,16 @@
+[package]
+name = "atoma"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CLI for molio — fast molecular file parsing, conversion, and benchmarking"
+
+[[bin]]
+name = "atoma"
+path = "src/main.rs"
+
+[dependencies]
+atoma-core = { path = "../atoma-core" }
+clap.workspace = true
+anyhow.workspace = true

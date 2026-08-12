@@ -1,0 +1,21 @@
+[package]
+name = "atoma-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "High-performance molecular file I/O engine — zero-copy parsers for PDB, SDF, XYZ, mmCIF"
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+pretty_assertions.workspace = true
+proptest.workspace = true
+
+[[bench]]
+name = "parse_benchmarks"
+harness = false

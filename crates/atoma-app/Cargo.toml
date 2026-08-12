@@ -1,0 +1,16 @@
+[package]
+name = "atoma-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "molio desktop app — drag, drop, analyze molecules"
+
+[dependencies]
+atoma-core = { path = "../atoma-core" }
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
