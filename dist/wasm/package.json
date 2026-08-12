@@ -1,0 +1,16 @@
+{
+  "name": "atoma-wasm",
+  "type": "module",
+  "description": "atoma WebAssembly bindings — parse molecules in the browser",
+  "version": "0.1.0",
+  "files": [
+    "atoma_wasm_bg.wasm",
+    "atoma_wasm.js",
+    "atoma_wasm.d.ts"
+  ],
+  "main": "atoma_wasm.js",
+  "types": "atoma_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
